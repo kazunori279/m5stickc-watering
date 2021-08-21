@@ -4,7 +4,7 @@
     For M5StickC + Watering device: https://docs.m5stack.com/en/unit/watering
     
     Usage: The display shows two bars: moisture levels for every second and every hour.
-    Use BtnB and Axp button to set moisture threshold. When the level goes under it
+    Use BtnB and Axp button to set moisture threshold. When the level does under it
     over 1 hour, it starts watering for 90 sec (about 500 mL).
 */
 
@@ -38,7 +38,7 @@ void setup() {
     M5.Lcd.setTextSize(2);
     M5.Lcd.setTextDatum(MC_DATUM);
 
-    // read pref
+    // read watering threshold from the NVS
     pref.begin(PREF_WATERING, true);
     wateringThreshold = pref.getInt(PREF_WATERING_THRESHOLD, 10);
     pref.end();
@@ -56,54 +56,59 @@ int wetRatioHourly = 0;
 bool watering = false;
 
 // timers
-int lastSec = 0;
-int lastWateringSec = 0;
-int wateringTimer = 0;
+unsigned long lastSec = 0;
+unsigned long lastWateringTime = 0;
 
 // main loop
 void loop() { 
 
   // get wet ratio
-  int adcVal = max(0, (ADC_DRY - analogRead(INPUT_PIN)) * 100 / (ADC_DRY - ADC_WET));
-  wetRatioSec = wetValsInSec.AddValue(adcVal);
+  int wetRatio = max(0, (ADC_DRY - analogRead(INPUT_PIN)) * 100 / (ADC_DRY - ADC_WET));
+  wetRatioSec = wetValsInSec.AddValue(wetRatio);
 
-  // for every second
-  RTC_TimeTypeDef rtcTime;
-  M5.Rtc.GetTime(&rtcTime);
-  if (rtcTime.Seconds != lastSec) {
-
-    // update timers
-    lastSec = rtcTime.Seconds;
-    lastWateringSec++;
-
-    // check for watering (wait for an hour)
-    wetRatioHourly = wetValsInHour.AddValue(wetRatioSec);
-    if (wetRatioHourly < wateringThreshold && lastWateringSec > 3600) {
-      watering = true;
-      digitalWrite(PUMP_PIN, watering);
-      lastWateringSec = 0;
-    }
-
-    // update watering timer
-    if (watering) {
-      wateringTimer++;
-      if (wateringTimer > WATERING_TIME) {
-        watering = false;
-        wateringTimer = 0;
-        digitalWrite(PUMP_PIN, watering);
-      }
-    }
-
-    // update disp
-    updateDisp();    
+  // For every second, check watering status and update UI
+  if (millis() > lastSec + 1000) {
+    lastSec =  millis();
+    checkWateringStatus();
+    updateDisp();
   }  
 
+  // UI events
+  processUIEvents();
+  delay(100);
+}
+
+// check if watering should be started/stopped
+void checkWateringStatus() {
+  
+    // start watering if wetRatio went under the threshold
+    wetRatioHourly = wetValsInHour.AddValue(wetRatioSec);
+    if (wetRatioHourly < wateringThreshold && lastWateringTime > 3600 * 1000) { // wait for 1 hour
+      switchWatering(true);
+    }
+
+    // stop watering after WATERING_TIME
+    if (watering && lastWateringTime > WATERING_TIME * 1000) {
+      switchWatering(false);
+    }
+}
+
+// start or stop watering
+void switchWatering(boolean isStart) {
+  watering = isStart;
+  if (isStart) {
+    lastWateringTime = millis();
+  }
+  digitalWrite(PUMP_PIN, isStart);
+}
+
+// UI events
+void processUIEvents() {
+  
   // BtnA: start/stop watering
   M5.update();
-  if(M5.BtnA.wasPressed()){
-    watering = !watering;
-    wateringTimer = 0;
-    digitalWrite(PUMP_PIN, watering);
+  if(M5.BtnA.wasPressed()) {
+    switchWatering(!watering);
   }
 
   // BtnB or Axp button: change watering threshold
@@ -116,9 +121,7 @@ void loop() {
     wateringThreshold = max(wateringThreshold - 5, 0);
     updateDisp();
     saveWateringThreshold();
-  }
-
-  delay(100);
+  }  
 }
 
 // save watering threshold to the NVS
