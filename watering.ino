@@ -4,7 +4,7 @@
     For M5StickC + Watering device: https://docs.m5stack.com/en/unit/watering
     
     Usage: The display shows two bars: moisture levels for every second and every hour.
-    Use BtnB and Axp button to set moisture threshold. When the level does under it
+    Use BtnB and Axp button to set moisture threshold. When the level goes under it
     over 1 hour, it starts watering for 90 sec (about 500 mL).
 */
 
