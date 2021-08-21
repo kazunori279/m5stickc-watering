@@ -56,8 +56,8 @@ int wetRatioHourly = 0;
 bool watering = false;
 
 // timers
-unsigned long lastSec = 0;
-unsigned long lastWateringTime = 0;
+unsigned long lastCheckTime = 0;
+int lastWateringSec = 0;
 
 // main loop
 void loop() { 
@@ -67,8 +67,9 @@ void loop() {
   wetRatioSec = wetValsInSec.AddValue(wetRatio);
 
   // For every second, check watering status and update UI
-  if (millis() > lastSec + 1000) {
-    lastSec =  millis();
+  if (millis() > lastCheckTime + 1000) {
+    lastCheckTime =  millis();
+    lastWateringSec++;
     checkWateringStatus();
     updateDisp();
   }  
@@ -83,12 +84,12 @@ void checkWateringStatus() {
   
     // start watering if wetRatio went under the threshold
     wetRatioHourly = wetValsInHour.AddValue(wetRatioSec);
-    if (wetRatioHourly < wateringThreshold && lastWateringTime > 3600 * 1000) { // wait for 1 hour
+    if (wetRatioHourly < wateringThreshold && lastWateringSec > 3600) { // wait for 1 hour
       switchWatering(true);
     }
 
     // stop watering after WATERING_TIME
-    if (watering && lastWateringTime > WATERING_TIME * 1000) {
+    if (watering && lastWateringSec > WATERING_TIME) {
       switchWatering(false);
     }
 }
@@ -97,7 +98,7 @@ void checkWateringStatus() {
 void switchWatering(boolean isStart) {
   watering = isStart;
   if (isStart) {
-    lastWateringTime = millis();
+    lastWateringSec = 0;
   }
   digitalWrite(PUMP_PIN, isStart);
 }
