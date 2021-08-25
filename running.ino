@@ -1,11 +1,23 @@
 /*
  * running
+ * 
+ * Prerequisite:
+ * - M5Stack
+ * - PbHub: https://docs.m5stack.com/en/unit/pbhub copy porthub.cpp and porthub.h to the sketch directory
 */
 #include <M5Stack.h>
+#include <Wire.h>
+#include "porthub.h"
 
-#define HR_SIGNAL_INPUT 26 // pin no of the heart rate sensor input
-#define TM_SPEED_INPUT 22  // pin no of the treadmill line sensor input
+//#define HR_SIGNAL_INPUT 26 // pin no of the heart rate sensor input
+//#define TM_SPEED_INPUT 22  // pin no of the treadmill line sensor input
 #define HR_SIGNALS_SIZE 10 // how many heart beats for calculating a heart rate
+
+#define REMOTE_SPEED_UP 17 // pin no for increasing the speed
+#define REMOTE_SPEED_START 2 // pin no for start/stop
+#define REMOTE_SPEED_DOWN 5 // pin no for decreasing the speed
+
+PortHub porthub;
 
 void setup(){
 
@@ -14,8 +26,15 @@ void setup(){
   M5.Power.begin();
 
   // init pins
-  pinMode(HR_SIGNAL_INPUT, INPUT);
-  pinMode(TM_SPEED_INPUT, INPUT);
+  porthub.begin();
+//  pinMode(HR_SIGNAL_INPUT, INPUT);
+//  pinMode(TM_SPEED_INPUT, INPUT);
+  pinMode(REMOTE_SPEED_UP, OUTPUT_OPEN_DRAIN);
+  pinMode(REMOTE_SPEED_START, OUTPUT_OPEN_DRAIN);
+  pinMode(REMOTE_SPEED_DOWN, OUTPUT_OPEN_DRAIN);
+  digitalWrite(REMOTE_SPEED_UP, true);
+  digitalWrite(REMOTE_SPEED_START, true);
+  digitalWrite(REMOTE_SPEED_DOWN, true);
 
   // init UI
   M5.Lcd.setTextSize(3);
@@ -29,6 +48,25 @@ void loop() {
   
   // read treadmill speed 
   readTreadmillSpeed();
+
+  M5.update();
+  if (M5.BtnA.wasPressed()) {
+    digitalWrite(REMOTE_SPEED_UP, false);
+    delay(500);
+    digitalWrite(REMOTE_SPEED_UP, true);
+  }
+
+  if (M5.BtnB.wasPressed()) {
+    digitalWrite(REMOTE_SPEED_START, false);
+    delay(500);
+    digitalWrite(REMOTE_SPEED_START, true);
+  }
+
+  if (M5.BtnC.wasPressed()) {
+    digitalWrite(REMOTE_SPEED_DOWN, false);
+    delay(500);
+    digitalWrite(REMOTE_SPEED_DOWN, true);
+  }
 
   // update UI
   updateUI();
@@ -47,7 +85,8 @@ unsigned long hrSignals[HR_SIGNALS_SIZE];
 
 void readHeartRate() {
   unsigned long beatTime;
-  hrSignal = (boolean) digitalRead(HR_SIGNAL_INPUT);
+  hrSignal = (boolean) porthub.hub_d_read_value_A(HUB1_ADDR);
+//  hrSignal = (boolean) digitalRead(HR_SIGNAL_INPUT);
   if (hrSignal != lastHrSignal) {
     lastHrSignal = hrSignal;
     unsigned long now = millis();
@@ -83,7 +122,8 @@ unsigned long lastSpSignalTime = 0;
 float spSignalInterval = 0;
 
 void readTreadmillSpeed() {
-  spSignal = !digitalRead(TM_SPEED_INPUT);
+//  spSignal = !digitalRead(TM_SPEED_INPUT);
+  spSignal = !(boolean)porthub.hub_d_read_value_A(HUB2_ADDR);
   if (spSignal != lastSpSignal) {
     lastSpSignal = spSignal;
     unsigned long now = millis();
