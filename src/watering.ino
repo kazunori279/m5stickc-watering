@@ -5,7 +5,7 @@
     
     Usage: The display shows two bars: moisture levels for every second and every hour.
     Use BtnB and Axp button to set moisture threshold. When the level goes under it
-    over 1 hour, it starts watering for 90 sec (about 500 mL).
+    over 1 hour, it starts watering for 180 sec (about 1L).
 */
 
 
@@ -17,7 +17,7 @@
 #define PUMP_PIN 32
 #define ADC_DRY 1900
 #define ADC_WET 1600
-#define WATERING_TIME 90 // 90 sec
+#define WATERING_TIME 180 // 180 sec
 #define WET_VALS_SEC_SIZE 10 // 1 sec
 #define WET_VALS_HOUR_SIZE 3600 // 1 hour
 #define PREF_WATERING "wtr"
