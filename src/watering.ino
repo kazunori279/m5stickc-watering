@@ -18,8 +18,9 @@
 #define ADC_DRY 1900
 #define ADC_WET 1600
 #define WATERING_TIME 180 // 180 sec
-#define WET_VALS_SEC_SIZE 10 // 1 sec
-#define WET_VALS_HOUR_SIZE 3600 // 1 hour
+#define WATERING_HOLD_OFF_TIME 86400 // 1 day
+#define WET_VALS_SEC_SIZE 10 // moisture level in last 10 secs
+#define WET_VALS_HOUR_SIZE 3600 // moisture level in last 1 hour
 #define PREF_WATERING "wtr"
 #define PREF_WATERING_THRESHOLD "wtrThr"
 
@@ -84,7 +85,7 @@ void checkWateringStatus() {
   
     // start watering if wetRatio went under the threshold
     wetRatioHourly = wetValsInHour.AddValue(wetRatioSec);
-    if (wetRatioHourly < wateringThreshold && lastWateringSec > 3600) { // wait for 1 hour
+    if (wetRatioHourly < wateringThreshold && lastWateringSec > WATERING_HOLD_OFF_TIME) {
       switchWatering(true);
     }
 
